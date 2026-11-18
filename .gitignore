@@ -16,3 +16,9 @@ node_modules/
 __pycache__/
 .venv/
 venv/
+
+# 构建与冒烟测试产物
+dist/
+.smoke/edge-profile/
+.smoke/*.png
+.smoke/*.log
