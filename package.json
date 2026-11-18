@@ -1,0 +1,22 @@
+{
+  "name": "vet-skeletal-anim-editor",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "兽医助理培训二维角色骨骼动画编辑器",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "node --test test/"
+  },
+  "dependencies": {
+    "jszip": "^3.10.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^5.4.11"
+  }
+}
