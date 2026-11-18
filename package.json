@@ -1,0 +1,28 @@
+{
+  "name": "driving-school-field-map",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 5180 --host 127.0.0.1",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --port 5180",
+    "smoke": "node --experimental-strip-types smoke/e2e.ts",
+    "shots": "node --experimental-strip-types smoke/shots.ts"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "three": "^0.170.0",
+    "zustand": "^4.5.5"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@types/three": "^0.170.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "playwright-core": "^1.65.1",
+    "typescript": "^5.6.3",
+    "vite": "^6.0.3"
+  }
+}
