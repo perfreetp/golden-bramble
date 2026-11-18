@@ -1,0 +1,154 @@
+:root {
+  --bg: #141820;
+  --panel: #1c2230;
+  --panel-2: #232b3d;
+  --border: #313b52;
+  --fg: #e6eaf2;
+  --muted: #9aa6bd;
+  --accent: #4f8cff;
+  --accent-2: #ffb347;
+  --ok: #43c08a;
+  --bad: #ff6b6b;
+  --warn: #ffce5c;
+  font-family: 'Segoe UI', 'Microsoft YaHei', system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--fg);
+  font-size: 14px;
+}
+
+#app {
+  height: 100vh;
+}
+
+button {
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--fg);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+button:hover {
+  border-color: var(--accent);
+}
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+button.warn {
+  background: #6b3f1d;
+  border-color: var(--accent-2);
+}
+button.danger {
+  background: #5c2626;
+  border-color: var(--bad);
+}
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+input,
+select,
+textarea {
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--fg);
+  background: #11151e;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  width: 100%;
+}
+input[type='range'] {
+  padding: 0;
+}
+label {
+  font-size: 12px;
+  color: var(--muted);
+  display: block;
+  margin-bottom: 3px;
+}
+
+.field {
+  margin-bottom: 10px;
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+}
+.row > * {
+  flex: 1;
+}
+
+.tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+}
+.tag.locked {
+  background: #6b3f1d;
+  border-color: var(--accent-2);
+}
+.tag.ok {
+  background: #173d2e;
+  border-color: var(--ok);
+  color: var(--ok);
+}
+.tag.bad {
+  background: #471e1e;
+  border-color: var(--bad);
+  color: var(--bad);
+}
+
+h3 {
+  margin: 16px 0 8px;
+  font-size: 14px;
+  color: var(--accent-2);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 4px;
+}
+h3:first-child {
+  margin-top: 0;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+th,
+td {
+  border: 1px solid var(--border);
+  padding: 5px 7px;
+  text-align: left;
+}
+th {
+  background: var(--panel-2);
+  position: sticky;
+  top: 0;
+}
+
+.muted {
+  color: var(--muted);
+}
+.scroll {
+  overflow: auto;
+}
