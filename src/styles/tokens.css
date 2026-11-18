@@ -1,0 +1,57 @@
+:root {
+  --bg: #0f1420;
+  --bg-panel: #171e2e;
+  --bg-panel-2: #1e2740;
+  --bg-input: #0c111d;
+  --border: #2a3550;
+  --border-strong: #3d4d72;
+  --fg: #e6ecf7;
+  --fg-dim: #93a1bd;
+  --fg-faint: #64718c;
+  --accent: #4f8cff;
+  --accent-soft: rgba(79, 140, 255, 0.18);
+  --good: #35c98f;
+  --warn: #f5a623;
+  --bad: #ff5d6c;
+  --purple: #a78bfa;
+  --radius: 8px;
+  --radius-sm: 5px;
+  --shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+  --font: "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --mono: "Cascadia Code", Consolas, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font);
+  font-size: 14px;
+}
+
+app-shell {
+  display: block;
+  height: 100vh;
+}
+
+button {
+  font-family: inherit;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
