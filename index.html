@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>笔杆雕刻纹样编辑与素材批次放行系统</title>
+<style>
+:root{
+  --bg:#1b1e25; --panel:#232730; --panel2:#2b303b; --line:#3a4150;
+  --fg:#e6e9ef; --fg-dim:#9aa3b2; --accent:#4f8cff; --accent2:#2f6fe0;
+  --ok:#3ecf8e; --warn:#f5a623; --bad:#ff5d5d; --purple:#a78bfa;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--fg);
+  font:13px/1.5 "Microsoft YaHei","PingFang SC","Segoe UI",sans-serif;
+  display:flex;flex-direction:column;overflow:hidden}
+button{font:inherit;color:var(--fg);background:var(--panel2);border:1px solid var(--line);
+  border-radius:5px;padding:4px 9px;cursor:pointer;white-space:nowrap}
+button:hover:not(:disabled){border-color:var(--accent);color:#fff}
+button:disabled{opacity:.38;cursor:not-allowed}
+button.primary{background:var(--accent2);border-color:var(--accent)}
+button.danger{border-color:#7a3535;color:#ffb0b0}
+button.active{background:var(--accent2);border-color:var(--accent);color:#fff}
+input,select,textarea{font:inherit;background:#1a1d23;color:var(--fg);
+  border:1px solid var(--line);border-radius:5px;padding:3px 6px;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+input[type=number]{width:64px}
+input[type=color]{width:30px;height:24px;padding:1px;border-radius:4px;cursor:pointer}
+label{color:var(--fg-dim)}
+.hint{color:var(--fg-dim);font-size:11px}
+.mono{font-family:Consolas,Menlo,monospace}
+
+/* ===== 顶栏 ===== */
+header{background:var(--panel);border-bottom:1px solid var(--line);padding:6px 10px;
+  display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+header .brand{font-weight:700;font-size:14px;margin-right:8px}
+header .brand small{color:var(--fg-dim);font-weight:400;margin-left:6px}
+.doc-fields{display:flex;gap:10px;align-items:center;background:var(--panel2);
+  padding:4px 8px;border-radius:6px;border:1px solid var(--line)}
+.doc-fields .f{display:flex;gap:4px;align-items:center}
+.toolbar{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.sep{width:1px;height:22px;background:var(--line);margin:0 4px}
+
+/* ===== 主体 ===== */
+main{flex:1;display:flex;min-height:0}
+.side{width:232px;background:var(--panel);border-right:1px solid var(--line);
+  display:flex;flex-direction:column;min-height:0}
+.side.right{border-right:none;border-left:1px solid var(--line)}
+.side-tabs{display:flex;border-bottom:1px solid var(--line)}
+.side-tabs button{flex:1;border:none;border-radius:0;background:transparent;
+  padding:8px 0;color:var(--fg-dim)}
+.side-tabs button.active{color:#fff;background:var(--panel2);box-shadow:inset 0 -2px 0 var(--accent)}
+.side-body{flex:1;overflow-y:auto;padding:8px}
+.section-title{font-size:11px;color:var(--fg-dim);text-transform:uppercase;
+  letter-spacing:1px;margin:10px 0 5px;display:flex;justify-content:space-between;align-items:center}
+.section-title:first-child{margin-top:2px}
+
+/* 图层 */
+.layer-block{border:1px solid var(--line);border-radius:6px;margin-bottom:6px;overflow:hidden}
+.layer-head{display:flex;align-items:center;gap:5px;padding:5px 7px;background:var(--panel2)}
+.layer-head input[type=text]{flex:1;min-width:0}
+.path-item{display:flex;align-items:center;gap:5px;padding:4px 7px 4px 22px;
+  border-top:1px solid var(--line);cursor:pointer;font-size:12px}
+.path-item:hover{background:var(--panel2)}
+.path-item.sel{background:#31415f}
+.path-item .swatch{width:10px;height:10px;border-radius:2px;flex:none}
+.path-item .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.path-item .badge{font-size:10px;padding:0 4px;border-radius:3px;background:#44361f;color:var(--warn)}
+.mini{padding:2px 6px;font-size:11px}
+
+/* 画布 */
+#canvas-wrap{flex:1;position:relative;min-width:0;background:#14161b}
+#svg{width:100%;height:100%;display:block;touch-action:none}
+.canvas-overlay{position:absolute;pointer-events:none;color:var(--fg-dim);font-size:11px}
+#zoom-indicator{right:10px;bottom:8px;background:rgba(20,22,27,.82);padding:3px 8px;
+  border-radius:4px;border:1px solid var(--line)}
+#toast{position:absolute;left:50%;top:14px;transform:translateX(-50%);
+  background:#2c3340;border:1px solid var(--line);padding:7px 16px;border-radius:6px;
+  opacity:0;transition:opacity .25s;z-index:5;max-width:70%}
+#toast.show{opacity:1}
+#toast.bad{border-color:#7a3535;color:#ffb0b0}
+#toast.ok{border-color:#2c6b4f;color:#b6f0d6}
+
+/* 状态条 */
+footer{background:var(--panel);border-top:1px solid var(--line);padding:4px 12px;
+  display:flex;gap:18px;color:var(--fg-dim);font-size:11px;align-items:center;min-height:26px}
+footer b{color:var(--fg);font-weight:600}
+
+/* 右侧面板通用 */
+.prop-row{display:flex;align-items:center;gap:6px;margin-bottom:7px}
+.prop-row label{flex:1}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.stat-card{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:7px}
+.stat-card .v{font-size:18px;font-weight:700}
+.stat-card .k{font-size:11px;color:var(--fg-dim)}
+.v.ok{color:var(--ok)} .v.warn{color:var(--warn)} .v.bad{color:var(--bad)}
+
+/* 批次 */
+.thresh{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:8px;margin-bottom:8px}
+.thresh .r{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.thresh .r:last-child{margin-bottom:0}
+.thresh input{width:100%}
+.batch-head{display:flex;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
+.batch-item{border:1px solid var(--line);border-radius:6px;margin-bottom:7px;overflow:hidden;background:var(--panel2)}
+.batch-item.tier-pass{border-left:3px solid var(--ok)}
+.batch-item.tier-warn{border-left:3px solid var(--warn)}
+.batch-item.tier-reject{border-left:3px solid var(--bad)}
+.bi-head{display:flex;align-items:center;gap:7px;padding:6px 8px}
+.bi-head .id{font-weight:600}
+.tier-tag{font-size:10px;padding:1px 7px;border-radius:10px;font-weight:600}
+.tier-tag.pass{background:#173d2e;color:var(--ok)}
+.tier-tag.warn{background:#44361f;color:var(--warn)}
+.tier-tag.reject{background:#4a2222;color:var(--bad)}
+.decided-tag{font-size:10px;padding:1px 7px;border-radius:10px;background:#27406a;color:#9cc1ff}
+.rejected-tag{font-size:10px;padding:1px 7px;border-radius:10px;background:#4a2222;color:#ffb0b0}
+.bi-metrics{display:flex;gap:10px;padding:0 8px 6px;font-size:11px;color:var(--fg-dim);flex-wrap:wrap}
+.bi-metrics b{color:var(--fg)}
+.bi-actions{display:flex;gap:6px;padding:0 8px 8px;flex-wrap:wrap}
+.reason-box{padding:0 8px 8px}
+.reason-box textarea{width:100%;height:46px;resize:vertical}
+.reason-note{padding:0 8px 8px;font-size:11px;color:#ffb0b0}
+.progress-bar{height:6px;background:#1a1d23;border-radius:3px;overflow:hidden;margin-bottom:8px}
+.progress-bar i{display:block;height:100%;background:var(--accent);transition:width .3s}
+.summary-line{font-size:11px;color:var(--fg-dim);margin-bottom:8px;line-height:1.7}
+.legend{display:flex;gap:10px;font-size:11px;color:var(--fg-dim);margin:6px 0}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:3px}
+.empty-note{color:var(--fg-dim);font-size:12px;padding:14px 6px;text-align:center}
+.kbd{background:#1a1d23;border:1px solid var(--line);border-bottom-width:2px;
+  border-radius:4px;padding:0 5px;font-size:10px;font-family:Consolas,monospace}
+.checkbox-row{display:flex;align-items:center;gap:6px;margin:5px 0}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-thumb{background:#3d4452;border-radius:5px}
+::-webkit-scrollbar-track{background:transparent}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <!-- ===================== 顶栏 ===================== -->
+  <header>
+    <div class="brand">笔杆雕刻工作站<small>纹样编辑 · 布尔运算 · 批次放行</small></div>
+    <div class="doc-fields">
+      <div class="f"><label>直径 Ø</label>
+        <input type="number" min="1" step="0.1" v-model.number="doc.diameter"
+          @change="onDocParamChange" title="笔杆直径（mm），周长 = π × 直径"></div>
+      <div class="f"><label>展开长</label>
+        <input type="number" min="1" step="0.1" v-model.number="doc.widthMm"
+          @change="onDocParamChange" @input="onWidthInput" title="圆周展开长度（mm），默认按周长自动换算"></div>
+      <div class="f"><label>高度 H</label>
+        <input type="number" min="1" step="1" v-model.number="doc.heightMm"
+          @change="onDocParamChange"></div>
+      <div class="f"><label>环向等分</label>
+        <input type="number" min="1" max="64" step="1" v-model.number="doc.divisions"
+          @change="onDocParamChange" title="圆周方向参考线等分数"></div>
+      <div class="f"><label>网格</label>
+        <input type="number" min="0.2" step="0.1" v-model.number="doc.gridMm"
+          @change="onDocParamChange" title="吸附网格间距（mm）"></div>
+    </div>
+
+    <div class="toolbar">
+      <button :class="{active:tool==='select'}" @click="tool='select'" title="选择/节点编辑 (V)">▣ 选择</button>
+      <button :class="{active:tool==='pen'}" @click="tool='pen'" title="贝塞尔描路径 (P)">✎ 贝塞尔笔</button>
+      <span class="sep"></span>
+      <button @click="addNodeAtPoint" :disabled="tool!=='select'||!selectedPath" title="在选中路径最近的线段上插入节点">＋ 加节点</button>
+      <button @click="breakNode" :disabled="!canBreak" title="在当前节点处断开路径">✂ 断开</button>
+      <button @click="closePath" :disabled="!canClose" title="闭合当前路径">○ 闭合</button>
+      <span class="sep"></span>
+      <button @click="booleanOp('unite')" :disabled="selectedPaths.length!==2" title="两条路径取并集">∪ 并集</button>
+      <button @click="booleanOp('subtract')" :disabled="selectedPaths.length!==2" title="先选路径 − 后选路径">− 差集</button>
+      <button @click="booleanOp('intersect')" :disabled="selectedPaths.length!==2" title="两条路径取交集">∩ 交集</button>
+      <span class="sep"></span>
+      <button @click="circumferentialArray" :disabled="selectedPaths.length<1"
+        title="环向复刻三份，自动按周长环绕并校验首尾接缝">◫ 环向阵列×3</button>
+      <button @click="runGapCheck" title="扫描全图宽度 &lt; 0.3mm 的窄缝并标红">⚠ 窄缝检查</button>
+      <span class="sep"></span>
+      <button @click="undo" :disabled="!canUndo" title="撤销 (Ctrl+Z)">↶ 撤销</button>
+      <button @click="redo" :disabled="!canRedo" title="重做 (Ctrl+Y)">↷ 重做</button>
+      <button @click="fitView">⛶ 适配</button>
+      <button class="primary" @click="exportSVG">⬇ 导出 SVG</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- ===================== 左侧：图层 ===================== -->
+    <div class="side">
+      <div class="side-tabs"><button class="active">图层 / 路径</button></div>
+      <div class="side-body">
+        <div class="section-title">
+          图层（导出保留分组）
+          <button class="mini" @click="addLayer">＋ 新图层</button>
+        </div>
+        <div v-for="layer in doc.layers" :key="layer.id" class="layer-block">
+          <div class="layer-head">
+            <input type="checkbox" :checked="layer.visible" @change="toggleLayer(layer)" title="显隐">
+            <input type="text" v-model="layer.name" @change="pushHistory">
+            <button class="mini" @click="addPath(layer.id)">＋路径</button>
+          </div>
+          <div v-for="p in pathsOfLayer(layer.id)" :key="p.id"
+               class="path-item" :class="{sel:selectedIds.includes(p.id)}"
+               @click="selectPath(p.id,$event)">
+            <span class="swatch" :style="{background:p.color}"></span>
+            <span class="nm" :title="p.name">{{ p.name }}</span>
+            <span v-if="p.closed" class="badge">闭合</span>
+            <button class="mini" @click.stop="removePath(p.id)" title="删除">×</button>
+          </div>
+          <div v-if="pathsOfLayer(layer.id).length===0" class="hint" style="padding:4px 8px 6px 22px">空图层</div>
+        </div>
+
+        <div class="section-title">显示选项</div>
+        <div class="checkbox-row"><input type="checkbox" v-model="ui.showGrid" id="sg"><label for="sg">显示网格</label></div>
+        <div class="checkbox-row"><input type="checkbox" v-model="ui.showDivisions" id="sd"><label for="sd">显示环向等分线</label></div>
+        <div class="checkbox-row"><input type="checkbox" v-model="ui.showCenter" id="sc"><label for="sc">显示中心线</label></div>
+        <div class="checkbox-row"><input type="checkbox" v-model="ui.showGaps" id="sr"><label for="sr">显示窄缝标红</label></div>
+        <div class="checkbox-row"><input type="checkbox" v-model="ui.snapEnabled" id="sn"><label for="sn">启用吸附</label></div>
+
+        <div class="section-title">操作说明</div>
+        <div class="hint" style="line-height:1.8">
+          <span class="kbd">V</span> 选择&nbsp; <span class="kbd">P</span> 贝塞尔笔<br>
+          <span class="kbd">Del</span> 删除节点/路径<br>
+          <span class="kbd">Esc</span> 结束当前路径<br>
+          拖动节点时自动吸附网格 / 中心线 / 其它路径端点，按 <span class="kbd">Shift</span> 临时关闭吸附。<br>
+          布尔运算后自动扫描 0.3mm 窄缝。
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== 中间：画布 ===================== -->
+    <div id="canvas-wrap" ref="wrapRef">
+      <svg id="svg" ref="svgRef">
+        <defs>
+          <pattern id="grid-pattern" :width="doc.gridMm" :height="doc.gridMm" patternUnits="userSpaceOnUse">
+            <path :d="`M ${doc.gridMm} 0 L 0 0 0 ${doc.gridMm}`" fill="none" stroke="#262b35" stroke-width="0.08"/>
+          </pattern>
+        </defs>
+
+        <g ref="rootRef">
+          <!-- 纸面色块 -->
+          <rect x="0" y="0" :width="doc.widthMm" :height="doc.heightMm" fill="#f4efe4"></rect>
+          <rect v-if="ui.showGrid" x="0" y="0" :width="doc.widthMm" :height="doc.heightMm"
+                fill="url(#grid-pattern)"></rect>
+
+          <!-- 环向等分参考线 -->
+          <g v-if="ui.showDivisions">
+            <line v-for="d in divisionLines" :key="'dv'+d.x"
+              :x1="d.x" :y1="0" :x2="d.x" :y2="doc.heightMm"
+              stroke="#d8b46a" stroke-width="0.12" stroke-dasharray="1.2 1.0" opacity="0.85"/>
+            <text v-for="d in divisionLines" :key="'tx'+d.x" :x="d.x+0.4" :y="2.2"
+              font-size="1.6" fill="#b08a3e">{{ d.label }}</text>
+          </g>
+
+          <!-- 中心线 -->
+          <line v-if="ui.showCenter" :x1="0" :y1="doc.heightMm/2" :x2="doc.widthMm" :y2="doc.heightMm/2"
+            stroke="#4f8cff" stroke-width="0.14" stroke-dasharray="2.2 1.4"/>
+
+          <!-- 首尾接缝（0 与周长位置） -->
+          <line x1="0" y1="0" x2="0" :y2="doc.heightMm" stroke="#ff5d5d" stroke-width="0.25" opacity="0.7"/>
+          <line :x1="doc.widthMm" y1="0" :x2="doc.widthMm" :y2="doc.heightMm" stroke="#ff5d5d" stroke-width="0.25" opacity="0.7"/>
+          <text x="0.4" :y="doc.heightMm-0.8" font-size="1.5" fill="#c04545">接缝 0 / {{ doc.widthMm.toFixed(1) }}mm</text>
+
+          <!-- 路径层（按图层分组，导出结构一致） -->
+          <g v-for="layer in visibleLayers" :key="layer.id" :data-layer="layer.name">
+            <path v-for="p in pathsOfLayer(layer.id)" :key="p.id"
+              :d="pathD(p)" :fill="p.closed ? p.fill : 'none'"
+              :stroke="strokeOf(p)" :stroke-width="strokeWidthOf(p)"
+              fill-rule="evenodd" stroke-linejoin="round" stroke-linecap="round"
+              :opacity="p.id===hoverPathId?0.85:1"
+              @pointerdown.stop="onPathPointerDown($event,p)"
+              @pointermove="onPathHover($event,p)"
+              @pointerleave="hoverPathId=null"
+              style="cursor:pointer"/>
+          </g>
+
+          <!-- 窄缝标记 -->
+          <g v-if="ui.showGaps">
+            <g v-for="(g,i) in gapMarkers" :key="'g'+i">
+              <line :x1="g.x1" :y1="g.y1" :x2="g.x2" :y2="g.y2"
+                stroke="#ff1a1a" stroke-width="0.55" stroke-linecap="round"/>
+              <circle :cx="(g.x1+g.x2)/2" :cy="(g.y1+g.y2)/2" r="0.9"
+                fill="none" stroke="#ff1a1a" stroke-width="0.18"/>
+            </g>
+          </g>
+
+          <!-- 贝塞尔笔预览 -->
+          <g v-if="penPreview">
+            <path :d="penPreview.d" fill="none" stroke="#a78bfa" stroke-width="0.25"
+              stroke-dasharray="1.0 0.8"/>
+            <circle v-for="(n,i) in penPreview.nodes" :key="i" :cx="n.x" :cy="n.y"
+              r="0.7" fill="#a78bfa"/>
+          </g>
+
+          <!-- 选中路径的节点 / 控制柄 -->
+          <g v-for="p in editablePaths" :key="'n'+p.id">
+            <line v-for="(h,i) in handleLines(p)" :key="'h'+i"
+              :x1="h.x1" :y1="h.y1" :x2="h.x2" :y2="h.y2"
+              stroke="#4f8cff" stroke-width="0.12"/>
+            <circle v-for="(c,i) in controlPoints(p)" :key="'c'+i"
+              :cx="c.x" :cy="c.y" r="0.55" fill="#4f8cff" style="cursor:grab"
+              @pointerdown.stop="onControlPointerDown($event,p,i)"/>
+            <circle v-for="(n,i) in p.nodes" :key="'nn'+i"
+              :cx="n.x" :cy="n.y" r="0.85"
+              :fill="i===activeNodeIndex && p.id===activePathId ? '#ffd166' : '#ffffff'"
+              stroke="#1f4fa8" stroke-width="0.18" style="cursor:grab"
+              @pointerdown.stop="onNodePointerDown($event,p,i)"/>
+          </g>
+
+          <!-- 吸附指示 -->
+          <g v-if="snapIndicator">
+            <circle :cx="snapIndicator.x" :cy="snapIndicator.y" r="1.1"
+              fill="none" stroke="#3ecf8e" stroke-width="0.22"/>
+            <text :x="snapIndicator.x+1.4" :y="snapIndicator.y-1.2"
+              font-size="1.4" fill="#3ecf8e">{{ snapIndicator.label }}</text>
+          </g>
+        </g>
+      </svg>
+
+      <div class="canvas-overlay" id="zoom-indicator">
+        缩放 {{ Math.round(zoomK*100) }}% · 周长 {{ doc.widthMm.toFixed(2) }}mm（Ø{{ doc.diameter }}mm × π）
+      </div>
+      <div id="toast" :class="toastCls">{{ toastMsg }}</div>
+    </div>
+
+    <!-- ===================== 右侧：属性 / 批次 ===================== -->
+    <div class="side right">
+      <div class="side-tabs">
+        <button :class="{active:rightTab==='props'}" @click="rightTab='props'">属性/检查</button>
+        <button :class="{active:rightTab==='batch'}" @click="rightTab='batch'">批次放行</button>
+      </div>
+
+      <div class="side-body" v-show="rightTab==='props'">
+        <div class="section-title">文档参数</div>
+        <div class="prop-row"><label>周长（自动）</label><span class="mono">{{ circumference.toFixed(3) }} mm</span></div>
+        <div class="prop-row"><label>窄缝判定阈值</label><span class="mono">&lt; 0.300 mm</span></div>
+        <div class="prop-row"><label>历史栈</label>
+          <span class="mono">{{ historyIndex+1 }} / {{ history.length }}（上限100，≥50步）</span></div>
+
+        <div class="section-title">选中路径</div>
+        <template v-if="activePath">
+          <div class="prop-row"><label>名称</label>
+            <input type="text" v-model="activePath.name" @change="pushHistory" style="width:120px"></div>
+          <div class="prop-row"><label>描边色</label>
+            <input type="color" v-model="activePath.color" @change="pushHistory">
+            <label style="flex:none">填充</label>
+            <input type="color" v-model="activePath.fill" @change="pushHistory"></div>
+          <div class="prop-row"><label>节点数</label><span class="mono">{{ activePath.nodes.length }}</span></div>
+          <div class="prop-row"><label>状态</label>
+            <span>{{ activePath.closed ? '闭合路径' : '开放路径' }}</span></div>
+          <div class="prop-row" v-if="activePath.sourcePaths">
+            <label>布尔来源</label><span class="hint" style="flex:1">
+              {{ activePath.sourcePaths.join('、') }}（原始 d 已保留在导出 SVG）</span></div>
+          <div class="prop-row" v-if="activePath.arrayMeta">
+            <label>阵列信息</label><span class="hint" style="flex:1">
+              源 {{ activePath.arrayMeta.source }} · 副本 {{ activePath.arrayMeta.copy+1 }}/3</span></div>
+          <button class="danger" @click="removePath(activePath.id)" style="width:100%">删除该路径</button>
+        </template>
+        <div v-else class="empty-note">未选中路径。用「贝塞尔笔」描一条，或在左侧图层中点选。</div>
+
+        <div class="section-title">窄缝检查（&lt;0.3mm 激光雕不出）</div>
+        <div class="stat-grid">
+          <div class="stat-card"><div class="v" :class="gapMarkers.length?'bad':'ok'">{{ gapMarkers.length }}</div>
+            <div class="k">窄缝处数</div></div>
+          <div class="stat-card"><div class="v" :class="minGap<0.3?'bad':'ok'">
+            {{ gapMarkers.length? minGap.toFixed(2)+'mm':'—' }}</div>
+            <div class="k">最窄间隙</div></div>
+        </div>
+        <p class="hint" v-if="gapMarkers.length">红色连线两端为间距小于 0.3mm 的轮廓采样点，激光雕刻最小刀缝约 0.3mm，请加宽或合并后再投产。</p>
+
+        <div class="section-title">环向接缝校验</div>
+        <template v-if="seamReport.length">
+          <div v-for="(s,i) in seamReport" :key="i" class="bi-metrics" style="padding:2px 0">
+            <span :style="{color:s.ok?'var(--ok)':'var(--bad)'}">{{ s.ok?'✓':'✗' }}</span>
+            <span style="flex:1">{{ s.name }}</span>
+            <span class="mono">Δy={{ s.dy.toFixed(2) }}mm</span>
+          </div>
+        </template>
+        <div v-else class="hint">执行「环向阵列×3」后在此查看首尾接缝是否对齐。</div>
+      </div>
+
+      <!-- ===================== 批次放行 ===================== -->
+      <div class="side-body" v-show="rightTab==='batch'">
+        <div class="batch-head">
+          <input type="text" v-model="batch.name" style="flex:1;min-width:90px" title="批次名称">
+          <button class="mini" @click="loadSampleBatch">载入示例批次</button>
+          <label class="mini" for="import-json" style="cursor:pointer;border:1px solid var(--line);border-radius:5px;padding:2px 6px">导入JSON</label>
+          <input id="import-json" type="file" accept=".json,application/json" style="display:none" @change="importBatch($event)">
+        </div>
+
+        <div class="thresh">
+          <div class="r"><label style="width:92px">最小线宽 mm</label>
+            <input type="number" step="0.05" min="0" v-model.number="batch.thresholds.minLineWidthMm" @change="rerunAutoCheck"></div>
+          <div class="r"><label style="width:92px">最大断点数</label>
+            <input type="number" step="1" min="0" v-model.number="batch.thresholds.maxBreaks" @change="rerunAutoCheck"></div>
+          <div class="hint">合格：两项均达标；警告：断点略超或线宽偏细（容差20%）；退回：超容差或线宽低于0.3mm 物理极限。</div>
+        </div>
+
+        <div class="progress-bar"><i :style="{width: decidePercent+'%'}"></i></div>
+        <div class="summary-line">
+          自动分级：<b style="color:var(--ok)">{{ tierCount.pass }} 合格</b> ·
+          <b style="color:var(--warn)">{{ tierCount.warn }} 警告</b> ·
+          <b style="color:var(--bad)">{{ tierCount.reject }} 退回</b><br>
+          复核进度：{{ decidedCount }}/{{ batch.items.length }}
+          （通过 {{ approvedCount }} · 驳回 {{ rejectedCount }} · 待处理 {{ pendingCount }}）
+        </div>
+
+        <div class="batch-head">
+          <button class="primary" :disabled="!canRelease" @click="releaseBatch">
+            {{ canRelease ? '整批放行 → 雕刻组' : `待处理 ${pendingCount} 条，无法放行` }}
+          </button>
+          <button :disabled="!rejectedCount" @click="exportRejects">导出退回清单（供应商）</button>
+        </div>
+
+        <div v-if="batch.items.length===0" class="empty-note">
+          暂无素材。点击「载入示例批次」体验自动检查与逐条复核流程。
+        </div>
+
+        <div v-for="item in batch.items" :key="item.id" class="batch-item" :class="'tier-'+item.tier">
+          <div class="bi-head">
+            <span class="id">{{ item.id }}</span>
+            <span class="tier-tag" :class="item.tier">{{ tierText(item.tier) }}</span>
+            <span v-if="item.decision==='approved'" class="decided-tag">已确认</span>
+            <span v-if="item.decision==='rejected'" class="rejected-tag">已驳回</span>
+            <span style="flex:1"></span>
+            <span class="hint">{{ item.supplier }}</span>
+          </div>
+          <div class="bi-metrics">
+            <span>线宽 <b :style="lineWidthStyle(item)">{{ item.minLineWidthMm.toFixed(2) }}mm</b></span>
+            <span>断点 <b :style="breaksStyle(item)">{{ item.breaks }}</b> 处</span>
+            <span v-if="item.narrowGaps" style="color:var(--bad)">窄缝 {{ item.narrowGaps }} 处</span>
+          </div>
+          <div v-if="item.decision==='rejected'" class="reason-note">驳回原因：{{ item.reason }}</div>
+          <div class="bi-actions" v-if="item.decision==='pending'">
+            <button class="mini" style="border-color:#2c6b4f;color:#9fe3c4" @click="approveItem(item)">确认通过</button>
+            <button class="mini danger" @click="toggleReason(item)">驳回…</button>
+          </div>
+          <div class="reason-box" v-if="item.showReason">
+            <textarea v-model="item.reasonDraft" placeholder="必填：写明退回原因（如线宽0.22mm低于激光0.3mm极限，断点5处需补路径）"></textarea>
+            <div style="display:flex;gap:6px;margin-top:4px">
+              <button class="mini danger" @click="rejectItem(item)">提交驳回</button>
+              <button class="mini" @click="item.showReason=false">取消</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ===================== 状态条 ===================== -->
+  <footer>
+    <span>工具：<b>{{ tool==='pen'?'贝塞尔笔':'选择/节点' }}</b></span>
+    <span>指针 mm：<b class="mono">{{ cursor.x.toFixed(2) }}, {{ cursor.y.toFixed(2) }}</b></span>
+    <span v-if="snapIndicator" style="color:var(--ok)">已吸附：<b>{{ snapIndicator.label }}</b></span>
+    <span v-if="penPreview">绘制中：{{ penPreview.nodes.length }} 个节点，单击落节点 / 双击或 Esc 结束</span>
+    <span v-if="selectedPaths.length===2" style="color:var(--warn)">
+      差集方向：①{{ selectedPaths[0].name }} − ②{{ selectedPaths[1].name }}</span>
+    <span style="flex:1"></span>
+    <span>数据本地自动保存（localStorage）</span>
+  </footer>
+</div>
+
+<script>
+/* 本地 vendor 优先，离线可用；本地文件缺失时回退 CDN。动态注入，避免 document.write 清空 DOM */
+(function () {
+  var libs = [
+    ['vendor/d3.min.js',        'https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js'],
+    ['vendor/paper-full.min.js','https://cdnjs.cloudflare.com/ajax/libs/paper.js/0.12.18/paper-full.min.js'],
+    ['vendor/vue.global.prod.js','https://cdnjs.cloudflare.com/ajax/libs/vue/3.5.13/vue.global.prod.js'],
+    ['js/model.js', null], ['js/geometry.js', null], ['js/boolean.js', null],
+    ['js/gaps.js', null], ['js/batch.js', null], ['js/editor.js', null]
+  ];
+  function inject(src) {
+    return new Promise(function (resolve, reject) {
+      var s = document.createElement('script');
+      s.src = src; s.async = false;
+      s.onload = resolve; s.onerror = reject;
+      document.head.appendChild(s);
+    });
+  }
+  (function load(i) {
+    if (i >= libs.length) return;
+    var pair = libs[i];
+    inject(pair[0]).catch(function () {
+      if (!pair[1]) { document.getElementById('load-fatal').style.display = 'block'; return; }
+      return inject(pair[1]).catch(function () {
+        document.getElementById('load-fatal').style.display = 'block';
+      });
+    }).then(function () { load(i + 1); });
+  })(0);
+})();
+</script>
+<div id="load-fatal" style="display:none;padding:40px;color:#c00;font:14px sans-serif">
+  依赖加载失败：请确认 vendor 目录完整，或联网后刷新页面。
+</div>
+</body>
+</html>
