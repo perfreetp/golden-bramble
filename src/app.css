@@ -1,0 +1,11 @@
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; height: 100%; }
+body {
+  font-family: 'Segoe UI', 'Microsoft YaHei', system-ui, sans-serif;
+  background: #10131a;
+  color: #dfe6f2;
+}
+#app { height: 100vh; display: flex; flex-direction: column; }
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-thumb { background: #36405a; border-radius: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
