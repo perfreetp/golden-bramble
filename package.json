@@ -1,0 +1,29 @@
+{
+  "name": "liuli-zhaobi-workbench",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "琉璃瓦厂琉璃照壁立面过程式生成工作台",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test:domain": "node ./test/domain.test.js",
+    "test:workflow": "node ./test/workflow.test.js",
+    "test": "node ./test/domain.test.js && node ./test/workflow.test.js",
+    "smoke": "node ./test/browser-smoke.mjs"
+  },
+  "dependencies": {
+    "d3-array": "^3.2.4",
+    "d3-interpolate": "^3.0.1",
+    "d3-scale": "^4.0.2",
+    "d3-selection": "^3.0.0",
+    "d3-shape": "^3.2.0",
+    "d3-zoom": "^3.0.1",
+    "solid-js": "^1.9.5"
+  },
+  "devDependencies": {
+    "vite": "^6.3.5",
+    "vite-plugin-solid": "^2.11.6"
+  }
+}
